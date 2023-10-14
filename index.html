@@ -159,9 +159,9 @@
                 book_pages = document.querySelector('.pageCounter'),
                 book_nav = document.querySelector('.book-nav');
 
-            utterance.voice = voices[2]
+            utterance.voice = voices[1]
             utterance.rate = 0.5
-            utterance.pitch = 0.2
+            utterance.pitch = 0.5
 
             document.addEventListener("contextmenu", e=>{
                 e.preventDefault()
@@ -213,7 +213,7 @@
                 play_button.style.background = 'blue'
                 isPlaying = false
                 isPaused = false
-                changePage(1)
+                next_button.click()
             }
 
             utterance.onpause = e =>{
