@@ -104,9 +104,121 @@
             align-items: center;
             border:1px solid;
         }
+
+        .loader-group{
+            padding: 10px;
+            width: max-content;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-flow: column;
+        }
+
+        .loader-group div{
+            position: absolute;
+        }
+
+        .loader{
+            height: 100px;
+            width: 100px;
+            border-radius: 100%;
+            border: 2px solid transparent;
+            border-top-color: blue;
+            border-bottom-color: blue;
+
+        }
+
+        .loader-md{
+            width: 90px;
+            height: 90px;
+        }
+
+        .loader-sm{
+            width: 70px;
+            height:70px;
+        }
+
+        .loader-reverse{
+            animation: roll-reverse 1.5s linear infinite;
+        }
+        .loader-delay-1{
+            animation:roll 1s linear infinite !important;
+        }
+        .loading{
+            animation: roll 2s linear infinite;
+        }
+        @keyframes roll {
+            from{
+                transform: rotate(0deg);
+                border-top-color: blue;
+                border-bottom-color: blue;
+
+            }
+
+            to{
+                transform: rotate(360deg);
+                border-top-color: red;
+                border-bottom-color: red;
+            }
+        }
+
+        @keyframes roll-reverse {
+            from{
+                transform: rotate(360deg);
+                border-top-color: blue;
+                border-bottom-color: blue;
+
+            }
+
+            to{
+                transform: rotate(0deg);
+                border-top-color: red;
+                border-bottom-color: red;
+            }
+        }
+
+        .status{
+            padding: 5px;
+            font-size: 9px;
+            border: 1px solid lightgrey;
+            margin: 10px;
+        }
+
+        .count{
+            padding:5px;
+            font-size: xx-large;
+            color: black;
+        }
+
+
+        .popup{
+            height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            background: var(--bg-color);
+            z-index: 5000;
+            display: flex;
+            flex-flow: column;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body class="app">
+
+    <div class="popup hidden">
+
+        <div class="loader-group">
+            <div class="loader loading"></div>
+            <div class="loader loader-md loader-reverse"></div>
+            <div class="loader loader-sm loading loader-delay-1"></div>
+            <div class="count">R</div>
+        </div>
+        <h4>Loading PDF File</h4>
+        
+    </div>
 
     <div class="book">
 
@@ -138,14 +250,14 @@
         const TEXT=[];
         let FILE;
         
-        document.addEventListener('DOMContentLoaded', e=>{
+        document.addEventListener('DOMContentLoaded', async e=>{
 
             let currentPage = 0,
                 utterance = new SpeechSynthesisUtterance(),
                 speechSync = speechSynthesis,
                 isPaused = false,
                 isPlaying = false,
-                voices = speechSynthesis.getVoices();
+                voices = await speechSync.getVoices();
 
 
             const load_button = document.querySelector('.load-button'),
@@ -157,10 +269,11 @@
                 placeholder = document.querySelector('.placeholder'),
                 book_content = document.querySelector('.book-content'),
                 book_pages = document.querySelector('.pageCounter'),
+                loader = document.querySelector('.popup'),
                 book_nav = document.querySelector('.book-nav');
 
-            utterance.voice = voices[1]
-            utterance.rate = 0.5
+            utterance.voice = voices[0]
+            utterance.rate = 0.8
             utterance.pitch = 0.5
 
             document.addEventListener("contextmenu", e=>{
@@ -260,6 +373,7 @@
             }
 
             const readUploadedFile = file=>{
+                loader.classList.toggle('hidden')
                 let reader = new FileReader()
                 reader.readAsDataURL(file)
                 reader.onload = async ()=>{
@@ -314,6 +428,7 @@
                 book_content.classList.toggle('hidden')
                 placeholder.classList.toggle('hidden')
                 book_nav.classList.toggle('hidden')
+                loader.classList.toggle('hidden')
             }
 
             const changePage = val=>{
@@ -355,4 +470,3 @@
 
 </body>
 </html>
-
