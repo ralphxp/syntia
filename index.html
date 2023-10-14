@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js" integrity="sha512-ml/QKfG3+Yes6TwOzQb7aCNtJF4PUyha6R3w8pSTo/VJSywl7ZreYvvtUso7fKevpsI+pYVVwnu82YO0q3V6eg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script src="./JS/pdf.min.js"></script>
+
+    <title>Ebook-Reader</title>
+    <style type="text/css">
+        *{
+            padding: 0;
+            margin: 0;
+            --bg-color:#e5e1d9;
+            --cl-br:#ddae50;
+        }
+
+        body,
+        .app
+        {
+            background: var(--bg-color);
+            box-shadow: inset 0px 0px 12px 0px var(--cl-br);
+            min-height: 100vh;
+            padding: 15px;
+            overflow-wrap: break-word;
+            overflow: all;
+        }
+
+        p{
+            margin: 10px auto;
+        }
+
+        .book{
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            overflow: all;
+            display: flex;
+            flex-flow: column;
+            justify-content: center;
+            align-items: center;
+
+        }
+
+        .book-content{
+            line-height: 25px;
+        }
+        
+        .book-nav{
+            height: 10vh;
+            width: 100%;
+            position: fixed;
+            background: transparent;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+        }
+        button, 
+        input[type=button],
+        .button{
+            background: blue;
+            color: white;
+            width: max-content;
+            height: max-content;
+            padding: 10px;
+            margin: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .hidden{
+            display: none !important;
+        }
+
+        .placeholder{
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-flow: column;
+        }
+        .grey{
+            background: grey !important;
+        }
+        .pageCounter{
+            height: 30px;
+            width: 30px;
+            background: transparent;
+            color: darkgrey;
+            position: fixed;
+            top: 0;
+            right: 0;
+            padding: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border:1px solid;
+        }
+    </style>
+</head>
+<body class="app">
+
+    <div class="book">
+
+        <div class="pageCounter">0/0</div>
+
+        <div class="placeholder">
+            <p style="color: lightgrey">
+                You haven't select any book, no content to display
+            </p>
+            <button class="button grey load-button">Click to Load book</button>
+        </div>
+        
+        <div class="book-content hidden">
+        </div>
+        <div class="book-nav hidden">
+            <div class="button-group">
+                <button class="button rounded prev-button">Prev</button>
+                <button class=" button rounded stop-button" style="background: brown">Stop</button>
+                <button class="button rounded play-button">Play</button>
+                <button class="button rounded next-button" style="background: green">Next</button>
+                <button class="button rounded n-button" style="background: grey">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+        const TEXT=[];
+        let FILE;
+        
+        document.addEventListener('DOMContentLoaded', e=>{
+
+            let currentPage = 0,
+                utterance = new SpeechSynthesisUtterance(),
+                speechSync = speechSynthesis,
+                isPaused = false,
+                isPlaying = false,
+                voices = speechSynthesis.getVoices();
+
+
+            const load_button = document.querySelector('.load-button'),
+                play_button = document.querySelector('.play-button'),
+                stop_button = document.querySelector('.stop-button'),
+                prev_button = document.querySelector('.prev-button'),
+                next_button = document.querySelector('.next-button'),
+                n_button = document.querySelector('.n-button'),
+                placeholder = document.querySelector('.placeholder'),
+                book_content = document.querySelector('.book-content'),
+                book_pages = document.querySelector('.pageCounter'),
+                book_nav = document.querySelector('.book-nav');
+
+            utterance.voice = voices[2]
+            utterance.rate = 0.5
+            utterance.pitch = 0.2
+
+            document.addEventListener("contextmenu", e=>{
+                e.preventDefault()
+                book_nav.classList.toggle('hidden')
+            })
+
+            n_button.onclick = async e=>{
+                pickFile()
+            }
+
+            load_button.onclick = async e=>{
+
+                pickFile()
+            }
+
+            prev_button.onclick = e=>{
+                if(!currentPage < 1)
+                    changePage(-1)
+            }
+
+            next_button.onclick = e=>{
+                if(currentPage <= (TEXT.length - 1))
+                    changePage(1)
+            }
+
+            play_button.onclick = e=>{
+                if(isPlaying){
+                    pauseSpeaking();
+                }
+
+                else{
+                    startSpeaking();
+                }
+            }
+
+            stop_button.onclick = e=>{
+                stopSpeaking()
+            }
+
+            utterance.onstart = e =>{
+                play_button.innerHTML = 'pause'
+                play_button.style.background = 'greenyellow'
+                isPlaying = true
+                isPaused = false
+            }
+
+            utterance.onend = e =>{
+                play_button.innerHTML = 'Play'
+                play_button.style.background = 'blue'
+                isPlaying = false
+                isPaused = false
+                changePage(1)
+            }
+
+            utterance.onpause = e =>{
+                play_button.innerHTML = 'Play'
+                play_button.style.background = 'blue'
+                isPlaying = false
+                isPaused = true
+            }
+
+            utterance.onresume = e =>{
+                play_button.innerHTML = 'Pause'
+                play_button.style.background = 'greenyellow'
+                isPlaying = true
+                isPaused = false
+            }
+
+            utterance.onmark = e =>{
+                console.log(e)
+            }
+
+            const pickFile = async ()=>{
+                filePicker = document.createElement('input')
+                filePicker.setAttribute('type', 'file')
+                filePicker.onchange = e=>{
+                    FILE = filePicker.files[0]
+                    let fileType = FILE.type
+                    let allowfiles = ["application/pdf"]
+
+                    if(fileType == "text/plain")
+                    {
+                        console.log(FILE)
+                        return
+                    }
+                    else if(!allowfiles.includes(fileType))
+                    {
+                        alert("Couldn't read file content")
+                        return false
+                    }
+
+                    readUploadedFile(FILE)
+                }
+
+                filePicker.click()
+            }
+
+            const readUploadedFile = file=>{
+                let reader = new FileReader()
+                reader.readAsDataURL(file)
+                reader.onload = async ()=>{
+                    let result =  await reader.result
+                    
+                    extractText(result)
+                }
+            }
+
+            const extractText = async (url, pass=false)=>{
+
+                try{
+
+                    let pdf;
+                    if (pass) {
+                        pdf = await pdfjsLib.getDocument({ url: url, password: pwd.value }).promise;
+                    } else {
+                        pdf = await pdfjsLib.getDocument(url).promise;
+                    }
+
+                    let pages = pdf.numPages;
+
+                    for (let i = 1; i <= pages; i++) {
+
+                        let page = await pdf.getPage(i);
+
+                        let txt = await page.getTextContent();
+                        // let doc = await page.
+
+                        let text = txt.items.map((s) => s.str).join("\n");
+
+                        TEXT.push(text); // Add the extracted text to the array
+                    }
+
+                    
+                    postProcess();
+
+                }
+                catch(err){
+
+                    console.log(err.message)
+                }
+
+            }
+
+            const postProcess = ()=>{
+                book_content.innerHTML = "<p>"+TEXT[currentPage]+"</p>"
+                book_pages.innerHTML = (currentPage+1)+"/"+TEXT.length
+
+                utterance.text = "Page 1... "+TEXT[currentPage]
+
+                book_content.classList.toggle('hidden')
+                placeholder.classList.toggle('hidden')
+                book_nav.classList.toggle('hidden')
+            }
+
+            const changePage = val=>{
+
+                currentPage += val
+                pageText = TEXT[currentPage]
+                book_pages.innerHTML = (currentPage+1)+"/"+TEXT.length
+                book_content.innerHTML = "<p>"+pageText+"</p>"
+                utterance.text = "Page"+(currentPage+1)+"... "+TEXT[currentPage]
+                stopSpeaking()
+                startSpeaking()
+            }
+
+            const startSpeaking = ()=>{
+                if(!isPaused)
+                    speechSync.speak(utterance);
+
+                else
+                    speechSync.resume()
+
+            }
+
+            const pauseSpeaking = ()=>{
+                speechSync.pause()
+                isPaused = true
+            }
+
+            const stopSpeaking = ()=>{
+                speechSync.cancel()
+            }
+
+
+
+
+        })
+
+        
+    </script>
+
+</body>
+</html>
+
