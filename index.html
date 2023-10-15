@@ -405,7 +405,7 @@
                         let txt = await page.getTextContent();
                         // let doc = await page.
 
-                        let text = txt.items.map((s) => s.str).join("<br>");
+                        let text = txt.items.map((s) => s.str).join(" ");
 
                         TEXT.push(text); // Add the extracted text to the array
                     }
